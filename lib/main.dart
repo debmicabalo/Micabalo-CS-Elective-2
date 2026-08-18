@@ -1,436 +1,284 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const FruitApp());
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+// --- 1. Router Configuration ---
+final GoRouter _router = GoRouter(
+  initialLocation: '/',
+  routes: <RouteBase>[
+    GoRoute(
+      path: '/',
+      builder: (BuildContext context, GoRouterState state) {
+        return const FruitListScreen();
+      },
+      // Nested detail route
+      routes: <RouteBase>[
+        GoRoute(
+          path: 'fruit/:name', 
+          builder: (BuildContext context, GoRouterState state) {
+            final String fruitName = state.pathParameters['name']!;
+            return FruitDetailScreen(fruitName: fruitName);
+          },
+        ),
+      ],
+    ),
+  ],
+);
+
+// --- 2. Main App Widget ---
+class FruitApp extends StatelessWidget {
+  const FruitApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      title: 'Fruit Router Demo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.green,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true, // Centering the AppBar Title
+          iconTheme: IconThemeData(color: Colors.black87),
+          titleTextStyle: TextStyle(
+            color: Colors.black87,
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
       ),
-      home: const NowPlayingScreen(),
+      routerConfig: _router,
     );
   }
 }
 
-class NowPlayingScreen extends StatefulWidget {
-  const NowPlayingScreen({super.key});
+// --- 3. Data Model ---
+class Fruit {
+  final String name;
+  final String emoji;
+  final List<Color> gradientColors;
 
-  @override
-  State<NowPlayingScreen> createState() => _NowPlayingScreenState();
+  const Fruit(this.name, this.emoji, this.gradientColors);
 }
 
-class _NowPlayingScreenState extends State<NowPlayingScreen> {
-  // State variables for interactive controls
-  bool _isPlaying = true;
-  bool _isFavorite = false;
-  bool _isAdded = false;
-  bool _isShuffleActive = false;
-  int _repeatMode = 0; // 0: Off, 1: Repeat All, 2: Repeat One
-  double _currentProgress = 0.44;
+// Expanded catalog of fruits with custom gradients
+final List<Fruit> fruitCatalog = [
+  const Fruit('Apple', '🍎', [Color(0xFFFF416C), Color(0xFFFF4B2B)]),
+  const Fruit('Banana', '🍌', [Color(0xFFF2C94C), Color(0xFFF2994A)]),
+  const Fruit('Watermelon', '🍉', [Color(0xFF56AB2F), Color(0xFFA8E063)]),
+  const Fruit('Grapes', '🍇', [Color(0xFF654EA3), Color(0xFFEA8D8D)]),
+  const Fruit('Orange', '🍊', [Color(0xFFFF8008), Color(0xFFFFC837)]),
+  const Fruit('Strawberry', '🍓', [Color(0xFFff0844), Color(0xFFffb199)]),
+  const Fruit('Pineapple', '🍍', [Color(0xFFF2C94C), Color(0xFF56AB2F)]),
+  const Fruit('Kiwi', '🥝', [Color(0xFF11998e), Color(0xFF38ef7d)]),
+  const Fruit('Peach', '🍑', [Color(0xFFff9a44), Color(0xFFfc6076)]),
+  const Fruit('Blueberry', '🫐', [Color(0xFF4b6cb7), Color(0xFF182848)]),
+];
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+// --- 4. Screens ---
+
+class FruitListScreen extends StatelessWidget {
+  const FruitListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFA67C52), // Top lighter brown
-              Color(0xFF5A4027), // Mid darker brown
-              Color(0xFF1E150D), // Bottom dark brown/black
-            ],
-            stops: [0.0, 0.4, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false, 
-          child: Column(
-            children: [
-              _buildStatusBar(),
-              const SizedBox(height: 10),
-              _buildTopIndicator(),
-              const SizedBox(height: 24),
-              _buildAlbumArt(),
-              const SizedBox(height: 32),
-              _buildSongInfo(),
-              const SizedBox(height: 20),
-              _buildProgressBar(),
-              const SizedBox(height: 10),
-              _buildPlaybackControls(),
-              const SizedBox(height: 24),
-              _buildBottomActions(),
-              const Spacer(),
-              _buildLyricsCard(),
-            ],
-          ),
-        ),
+      appBar: AppBar(
+        title: const Text('Fruit Market'),
       ),
-    );
-  }
-
-  Widget _buildStatusBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            '16:00',
-            style: TextStyle(
+      body: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        physics: const BouncingScrollPhysics(), // Fun, bouncy scrolling effect
+        itemCount: fruitCatalog.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final fruit = fruitCatalog[index];
+          
+          // Beautiful elevated card with a subtle shadow
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: fruit.gradientColors.last.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
               color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Row(
-            children: const [
-              Icon(Icons.signal_cellular_alt, color: Colors.white, size: 16),
-              SizedBox(width: 6),
-              Icon(Icons.wifi, color: Colors.white, size: 16),
-              SizedBox(width: 6),
-              Icon(Icons.battery_full, color: Colors.white, size: 18),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopIndicator() {
-    return GestureDetector(
-      onTap: () => _showSnackBar('Minimize Player tapped'),
-      child: SizedBox(
-        width: 48,
-        height: 8,
-        child: CustomPaint(
-          painter: _WideChevronPainter(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlbumArt() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.0),
-          child: Image.asset(
-            'sawayama.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Colors.grey[800],
-              child: const Center(
-                child: Icon(Icons.image, size: 50, color: Colors.white54),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSongInfo() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Akasaka Sad',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Rina Sawayama',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _buildHoverIcon(
-            icon: _isAdded ? Icons.check_circle : Icons.add_circle_outline,
-            onPressed: () {
-              setState(() {
-                _isAdded = !_isAdded;
-              });
-              _showSnackBar(_isAdded ? 'Added to library' : 'Removed from library');
-            },
-            size: 28,
-            color: _isAdded ? const Color(0xFF1DB954) : Colors.white,
-          ),
-          _buildHoverIcon(
-            icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-              _showSnackBar(_isFavorite ? 'Saved to Liked Songs' : 'Removed from Liked Songs');
-            },
-            size: 28,
-            color: _isFavorite ? const Color(0xFF1DB954) : Colors.white,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(
-        children: [
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 4.0,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-              thumbColor: Colors.white,
-            ),
-            child: Slider(
-              value: _currentProgress, 
-              onChanged: (value) {
-                setState(() {
-                  _currentProgress = value;
-                });
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '1:19',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '-1:39',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaybackControls() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildHoverIcon(
-            icon: Icons.shuffle,
-            onPressed: () {
-              setState(() {
-                _isShuffleActive = !_isShuffleActive;
-              });
-              _showSnackBar(_isShuffleActive ? 'Shuffle enabled' : 'Shuffle disabled');
-            },
-            size: 28,
-            color: _isShuffleActive ? const Color(0xFF1DB954) : Colors.white,
-          ),
-          _buildHoverIcon(
-            icon: Icons.skip_previous,
-            onPressed: () => _showSnackBar('Previous track'),
-            size: 42,
-          ),
-          // Play / Pause central button wrapped in our new HoverScale class
-          HoverScale(
-            scaleFactor: 1.08, // Slightly less scale for the big button
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                color: Colors.black,
-                iconSize: 42,
-                padding: const EdgeInsets.all(16),
-                onPressed: () {
-                  setState(() {
-                    _isPlaying = !_isPlaying;
-                  });
+              borderRadius: BorderRadius.circular(24),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                splashColor: fruit.gradientColors.first.withOpacity(0.1),
+                highlightColor: fruit.gradientColors.first.withOpacity(0.05),
+                onTap: () {
+                  // Navigate to nested route
+                  context.go('/fruit/${fruit.name.toLowerCase()}');
                 },
-              ),
-            ),
-          ),
-          _buildHoverIcon(
-            icon: Icons.skip_next,
-            onPressed: () => _showSnackBar('Next track'),
-            size: 42,
-          ),
-          _buildHoverIcon(
-            icon: _repeatMode == 2 ? Icons.repeat_one : Icons.repeat,
-            onPressed: () {
-              setState(() {
-                _repeatMode = (_repeatMode + 1) % 3;
-              });
-              String modeText = ['Repeat Off', 'Repeat All', 'Repeat One'][_repeatMode];
-              _showSnackBar(modeText);
-            },
-            size: 28,
-            color: _repeatMode > 0 ? const Color(0xFF1DB954) : Colors.white,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              InkWell(
-                onTap: () => _showSnackBar('Audio output: AirPods Max connected'),
-                borderRadius: BorderRadius.circular(4),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
                   child: Row(
-                    children: const [
-                      Icon(Icons.bluetooth, color: Color(0xFF1DB954), size: 16),
-                      SizedBox(width: 8),
+                    mainAxisAlignment: MainAxisAlignment.center, // Clickable elements centered
+                    children: [
+                      Hero(
+                        tag: 'emoji_${fruit.name}',
+                        child: Text(
+                          fruit.emoji, 
+                          style: const TextStyle(
+                            fontSize: 36, 
+                            decoration: TextDecoration.none // Prevent yellow underline in hero transiton
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
                       Text(
-                        'Airpods Max',
-                        style: TextStyle(
-                          color: Color(0xFF1DB954),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        fruit.name, 
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F3F5),
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_ios_rounded, 
+                          size: 16, 
+                          color: Colors.black54
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              HoverTextButton(
-                icon: Icons.view_headline,
-                label: 'SAWAYAMA',
-                onPressed: () => _showSnackBar('Opening Album: SAWAYAMA'),
-              ),
-              const Spacer(),
-              _buildHoverIcon(
-                icon: Icons.nightlight_round,
-                onPressed: () => _showSnackBar('Sleep timer options'),
-                size: 22,
-                color: Colors.white.withValues(alpha: 0.7),
-              ),
-              const SizedBox(width: 20),
-              _buildHoverIcon(
-                icon: Icons.ios_share,
-                onPressed: () => _showSnackBar('Share options opened'),
-                size: 22,
-                color: Colors.white.withValues(alpha: 0.7),
-              ),
-            ],
-          ),
-        ],
+            ),
+          );
+        },
       ),
     );
   }
+}
 
-  Widget _buildLyricsCard() {
-    return HoverScale(
-      scaleFactor: 1.02, // Subtle scale for the large card
-      child: GestureDetector(
-        onTap: () => _showSnackBar('Opening Full Screen Lyrics'),
-        child: Container(
-          height: 80, 
-          margin: const EdgeInsets.symmetric(horizontal: 16.0),
-          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 12.0, bottom: 20.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFFC7A27C), 
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(16.0),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 12.0,
-                spreadRadius: 20.0,
-                offset: const Offset(0, -4),
-              ),
-            ],
+class FruitDetailScreen extends StatelessWidget {
+  final String fruitName;
+
+  const FruitDetailScreen({super.key, required this.fruitName});
+
+  @override
+  Widget build(BuildContext context) {
+    // Find the corresponding fruit data, default to Apple if something weird happens
+    final fruit = fruitCatalog.firstWhere(
+      (f) => f.name.toLowerCase() == fruitName.toLowerCase(),
+      orElse: () => fruitCatalog.first,
+    );
+
+    return Scaffold(
+      extendBodyBehindAppBar: true, // Let the gradient flow behind the AppBar
+      appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white), // White back arrow
+        title: Text(
+          '${fruitName[0].toUpperCase()}${fruitName.substring(1)} Details',
+          style: const TextStyle(color: Colors.white), // White title
+        ),
+      ),
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          // Dynamic gradient based on the fruit clicked
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: fruit.gradientColors,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 4.0),
-                child: Text(
-                  'Lyrics',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              // Glassmorphism-style container for the emoji
+              Container(
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    )
+                  ],
+                ),
+                child: Hero(
+                  tag: 'emoji_${fruit.name}',
+                  child: Text(
+                    fruit.emoji,
+                    style: const TextStyle(
+                      fontSize: 120,
+                      decoration: TextDecoration.none,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 48),
+              
+              // Styled text overlaying the gradient
               Container(
-                padding: const EdgeInsets.all(6),
+                margin: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.open_in_full,
                   color: Colors.white,
-                  size: 16,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Fresh & Delicious',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade500,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'You selected a beautiful ${fruit.name}!',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -439,130 +287,4 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
       ),
     );
   }
-
-  // Simplified helper that just wraps standard IconButtons in our new HoverScale class
-  Widget _buildHoverIcon({
-    required IconData icon,
-    required VoidCallback onPressed,
-    double size = 28,
-    Color color = Colors.white,
-  }) {
-    return HoverScale(
-      child: IconButton(
-        icon: Icon(icon, color: color, size: size),
-        onPressed: onPressed,
-      ),
-    );
-  }
-}
-
-
-/// A reusable widget that scales up its child when hovered.
-class HoverScale extends StatefulWidget {
-  final Widget child;
-  final double scaleFactor;
-
- const HoverScale({
-    super.key,
-    required this.child,
-    this.scaleFactor = 1.2,
-  });
-
-  @override
-  State<HoverScale> createState() => _HoverScaleState();
-}
-
-class _HoverScaleState extends State<HoverScale> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: AnimatedScale(
-        scale: _isHovered ? widget.scaleFactor : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-/// A reusable text button that adds a background highlight when hovered.
-class HoverTextButton extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
- const HoverTextButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  State<HoverTextButton> createState() => _HoverTextButtonState();
-}
-
-class _HoverTextButtonState extends State<HoverTextButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: InkWell(
-        onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-          decoration: BoxDecoration(
-            color: _isHovered ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              Icon(widget.icon, color: Colors.white.withValues(alpha: 0.7), size: 22),
-              const SizedBox(width: 12),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Custom Painter to draw the specific "wide ^" shape
-class _WideChevronPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.4)
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..moveTo(0, size.height) // Start bottom left
-      ..lineTo(size.width / 2, 0) // Peak in top center
-      ..lineTo(size.width, size.height); // End bottom right
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
