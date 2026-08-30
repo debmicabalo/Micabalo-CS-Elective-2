@@ -1,568 +1,409 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const WireframeDashboardApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class WireframeDashboardApp extends StatelessWidget {
+  const WireframeDashboardApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-      ),
-      home: const NowPlayingScreen(),
+      title: 'Responsive & Adaptive Wireframe',
+      home: AdaptiveDashboard(),
     );
   }
 }
 
-class NowPlayingScreen extends StatefulWidget {
-  const NowPlayingScreen({super.key});
+class AdaptiveDashboard extends StatefulWidget {
+  const AdaptiveDashboard({super.key});
 
   @override
-  State<NowPlayingScreen> createState() => _NowPlayingScreenState();
+  State<AdaptiveDashboard> createState() => _AdaptiveDashboardState();
 }
 
-class _NowPlayingScreenState extends State<NowPlayingScreen> {
-  // State variables for interactive controls
-  bool _isPlaying = true;
-  bool _isFavorite = false;
-  bool _isAdded = false;
-  bool _isShuffleActive = false;
-  int _repeatMode = 0; // 0: Off, 1: Repeat All, 2: Repeat One
-  double _currentProgress = 0.44;
+class _AdaptiveDashboardState extends State<AdaptiveDashboard> {
+  int _selectedIndex = 0;
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  // Handles state changes for bottom navigation on mobile
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
+
+  // Helper to reliably check if we should show Apple UI
+  bool get _isApplePlatform =>
+      !kIsWeb && 
+      (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFA67C52), // Top lighter brown
-              Color(0xFF5A4027), // Mid darker brown
-              Color(0xFF1E150D), // Bottom dark brown/black
-            ],
-            stops: [0.0, 0.4, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false, 
-          child: Column(
-            children: [
-              _buildStatusBar(),
-              const SizedBox(height: 10),
-              _buildTopIndicator(),
-              const SizedBox(height: 24),
-              _buildAlbumArt(),
-              const SizedBox(height: 32),
-              _buildSongInfo(),
-              const SizedBox(height: 20),
-              _buildProgressBar(),
-              const SizedBox(height: 10),
-              _buildPlaybackControls(),
-              const SizedBox(height: 24),
-              _buildBottomActions(),
-              const Spacer(),
-              _buildLyricsCard(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    final isApplePlatform = _isApplePlatform;
 
-  Widget _buildStatusBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            '16:00',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Row(
-            children: const [
-              Icon(Icons.signal_cellular_alt, color: Colors.white, size: 16),
-              SizedBox(width: 6),
-              Icon(Icons.wifi, color: Colors.white, size: 16),
-              SizedBox(width: 6),
-              Icon(Icons.battery_full, color: Colors.white, size: 18),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+    // RESPONSIVE: Evaluate layout constraints at the top level
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 900;
 
-  Widget _buildTopIndicator() {
-    return GestureDetector(
-      onTap: () => _showSnackBar('Minimize Player tapped'),
-      child: SizedBox(
-        width: 48,
-        height: 8,
-        child: CustomPaint(
-          painter: _WideChevronPainter(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlbumArt() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.0),
-          child: Image.asset(
-            'sawayama.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Colors.grey[800],
-              child: const Center(
-                child: Icon(Icons.image, size: 50, color: Colors.white54),
+        // ==========================================
+        // 1. iOS / macOS NATIVE UI (CUPERTINO)
+        // ==========================================
+        if (isApplePlatform) {
+          if (isMobile) {
+            // DISTINCT iOS BOTTOM NAVIGATION
+            return CupertinoTabScaffold(
+              tabBar: CupertinoTabBar(
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+                activeColor: CupertinoColors.activeBlue,
+                items: const [
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Home'),
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.chart_bar), label: 'Stats'),
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.settings), label: 'Settings'),
+                ],
               ),
+              tabBuilder: (context, index) {
+                return CupertinoTabView(
+                  builder: (context) => CupertinoPageScaffold(
+                    backgroundColor: CupertinoColors.systemGroupedBackground,
+                    navigationBar: const CupertinoNavigationBar(
+                      middle: Text('Dashboard (iOS)'),
+                    ),
+                    child: SafeArea(child: _buildMobileLayout(index, true)),
+                  ),
+                );
+              },
+            );
+          }
+          
+          // iOS Tablet/Desktop Layout: No bottom tabs
+          return CupertinoPageScaffold(
+            backgroundColor: CupertinoColors.systemGroupedBackground,
+            navigationBar: const CupertinoNavigationBar(
+              middle: Text('Dashboard (macOS/iPadOS)'),
             ),
+            child: SafeArea(
+              child: isTablet ? _buildTabletLayout(true) : _buildDesktopLayout(true),
+            ),
+          );
+        }
+
+        // ==========================================
+        // 2. ANDROID / WEB UI (MATERIAL DESIGN)
+        // ==========================================
+        return Scaffold(
+          backgroundColor: Colors.grey.shade100,
+          appBar: AppBar(
+            title: Text(kIsWeb ? 'Dashboard (Web)' : 'Dashboard (Android)'),
+            elevation: kIsWeb ? 0 : 2, 
+            backgroundColor: Colors.blueGrey.shade800,
+            foregroundColor: Colors.white,
           ),
-        ),
-      ),
+          // DISTINCT ANDROID/MATERIAL 3 BOTTOM NAVIGATION (Pill-shaped indicators)
+          bottomNavigationBar: isMobile
+              ? NavigationBar(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _onItemTapped,
+                  indicatorColor: Colors.blue.shade200,
+                  destinations: const [
+                    NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+                    NavigationDestination(icon: Icon(Icons.analytics_outlined), selectedIcon: Icon(Icons.analytics), label: 'Stats'),
+                    NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+                  ],
+                )
+              : null,
+          body: isMobile
+              ? _buildMobileLayout(_selectedIndex, false)
+              : (isTablet ? _buildTabletLayout(false) : _buildDesktopLayout(false)),
+        );
+      },
     );
   }
 
-  Widget _buildSongInfo() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
+  // --- RESPONSIVE LAYOUTS ---
+
+  Widget _buildMobileLayout(int tabIndex, bool isApple) {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: Text(
+            'Viewing Mobile Tab: $tabIndex',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.2,
+          children: List.generate(4, (index) => _WireframeBox(isApple: isApple)),
+        ),
+        const SizedBox(height: 16),
+        _WireframeBox(height: 180, isApple: isApple),
+        const SizedBox(height: 16),
+        _WireframeBox(height: 180, isApple: isApple),
+        const SizedBox(height: 16),
+        ...List.generate(5, (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: _WireframeBox(
+            height: 80, 
+            isApple: isApple, 
+            child: _AdaptiveActionWidget(index: index, isApple: isApple)
+          ),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildTabletLayout(bool isApple) {
+    return Row(
+      children: [
+        _buildSidebar(width: 200, isApple: isApple),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.0,
+                children: List.generate(4, (index) => _WireframeBox(isApple: isApple)),
+              ),
+              const SizedBox(height: 24),
+              _WireframeBox(height: 250, isApple: isApple),
+              const SizedBox(height: 16),
+              ...List.generate(5, (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _WireframeBox(
+                  height: 80, 
+                  isApple: isApple, 
+                  child: _AdaptiveActionWidget(index: index, isApple: isApple)
+                ),
+              )),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(bool isApple) {
+    return Row(
+      children: [
+        _buildSidebar(width: 250, isApple: isApple),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Akasaka Sad',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: List.generate(4, (index) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: _WireframeBox(height: 140, isApple: isApple),
+                    ),
+                  )),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Rina Sawayama',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _buildHoverIcon(
-            icon: _isAdded ? Icons.check_circle : Icons.add_circle_outline,
-            onPressed: () {
-              setState(() {
-                _isAdded = !_isAdded;
-              });
-              _showSnackBar(_isAdded ? 'Added to library' : 'Removed from library');
-            },
-            size: 28,
-            color: _isAdded ? const Color(0xFF1DB954) : Colors.white,
-          ),
-          _buildHoverIcon(
-            icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-              _showSnackBar(_isFavorite ? 'Saved to Liked Songs' : 'Removed from Liked Songs');
-            },
-            size: 28,
-            color: _isFavorite ? const Color(0xFF1DB954) : Colors.white,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(
-        children: [
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 4.0,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-              thumbColor: Colors.white,
-            ),
-            child: Slider(
-              value: _currentProgress, 
-              onChanged: (value) {
-                setState(() {
-                  _currentProgress = value;
-                });
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '1:19',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '-1:39',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaybackControls() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildHoverIcon(
-            icon: Icons.shuffle,
-            onPressed: () {
-              setState(() {
-                _isShuffleActive = !_isShuffleActive;
-              });
-              _showSnackBar(_isShuffleActive ? 'Shuffle enabled' : 'Shuffle disabled');
-            },
-            size: 28,
-            color: _isShuffleActive ? const Color(0xFF1DB954) : Colors.white,
-          ),
-          _buildHoverIcon(
-            icon: Icons.skip_previous,
-            onPressed: () => _showSnackBar('Previous track'),
-            size: 42,
-          ),
-          // Play / Pause central button wrapped in our new HoverScale class
-          HoverScale(
-            scaleFactor: 1.08, // Slightly less scale for the big button
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                color: Colors.black,
-                iconSize: 42,
-                padding: const EdgeInsets.all(16),
-                onPressed: () {
-                  setState(() {
-                    _isPlaying = !_isPlaying;
-                  });
-                },
-              ),
-            ),
-          ),
-          _buildHoverIcon(
-            icon: Icons.skip_next,
-            onPressed: () => _showSnackBar('Next track'),
-            size: 42,
-          ),
-          _buildHoverIcon(
-            icon: _repeatMode == 2 ? Icons.repeat_one : Icons.repeat,
-            onPressed: () {
-              setState(() {
-                _repeatMode = (_repeatMode + 1) % 3;
-              });
-              String modeText = ['Repeat Off', 'Repeat All', 'Repeat One'][_repeatMode];
-              _showSnackBar(modeText);
-            },
-            size: 28,
-            color: _repeatMode > 0 ? const Color(0xFF1DB954) : Colors.white,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              InkWell(
-                onTap: () => _showSnackBar('Audio output: AirPods Max connected'),
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                const SizedBox(height: 24),
+                Expanded(
                   child: Row(
-                    children: const [
-                      Icon(Icons.bluetooth, color: Color(0xFF1DB954), size: 16),
-                      SizedBox(width: 8),
-                      Text(
-                        'Airpods Max',
-                        style: TextStyle(
-                          color: Color(0xFF1DB954),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 6,
+                        child: ListView.builder(
+                          itemCount: 5,
+                          itemBuilder: (context, index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0, right: 16.0),
+                            child: _WireframeBox(
+                              height: 80, 
+                              isApple: isApple,
+                              child: Center(child: _AdaptiveActionWidget(index: index, isApple: isApple)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          children: [
+                            Expanded(flex: 3, child: _WireframeBox(isApple: isApple)),
+                            const SizedBox(height: 16),
+                            Expanded(flex: 2, child: _WireframeBox(isApple: isApple)),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              HoverTextButton(
-                icon: Icons.view_headline,
-                label: 'SAWAYAMA',
-                onPressed: () => _showSnackBar('Opening Album: SAWAYAMA'),
+        ),
+      ],
+    );
+  }
+
+  // --- SIDEBAR COMPONENT ---
+  Widget _buildSidebar({required double width, required bool isApple}) {
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        color: isApple ? CupertinoColors.white : Colors.white,
+        border: isApple 
+            ? const Border(right: BorderSide(color: CupertinoColors.systemGrey4))
+            : Border(right: BorderSide(color: Colors.grey.shade300)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 48),
+          
+          // WIREFRAME IMAGE PLACEHOLDER (Replaced Heart Logo)
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: isApple ? CupertinoColors.systemGrey5 : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isApple ? CupertinoColors.systemGrey3 : Colors.grey.shade400, 
+                  width: 2
+                ),
               ),
-              const Spacer(),
-              _buildHoverIcon(
-                icon: Icons.nightlight_round,
-                onPressed: () => _showSnackBar('Sleep timer options'),
-                size: 22,
-                color: Colors.white.withValues(alpha: 0.7),
+              child: Icon(
+                isApple ? CupertinoIcons.photo : Icons.image_outlined, 
+                size: 32, 
+                color: Colors.grey.shade600
               ),
-              const SizedBox(width: 20),
-              _buildHoverIcon(
-                icon: Icons.ios_share,
-                onPressed: () => _showSnackBar('Share options opened'),
-                size: 22,
-                color: Colors.white.withValues(alpha: 0.7),
-              ),
-            ],
+            ),
+          ),
+          
+          const SizedBox(height: 48),
+          _SidebarItem(icon: isApple ? CupertinoIcons.home : Icons.home, label: 'DASHBOARD'),
+          _SidebarItem(icon: isApple ? CupertinoIcons.settings : Icons.settings, label: 'SETTINGS'),
+          _SidebarItem(icon: isApple ? CupertinoIcons.info : Icons.info, label: 'ABOUT'),
+          const Spacer(),
+          _SidebarItem(icon: isApple ? CupertinoIcons.square_arrow_right : Icons.logout, label: 'LOGOUT'),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _SidebarItem({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey.shade600),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: TextStyle(
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade800,
+            ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildLyricsCard() {
-    return HoverScale(
-      scaleFactor: 1.02, // Subtle scale for the large card
-      child: GestureDetector(
-        onTap: () => _showSnackBar('Opening Full Screen Lyrics'),
-        child: Container(
-          height: 80, 
-          margin: const EdgeInsets.symmetric(horizontal: 16.0),
-          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 12.0, bottom: 20.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFFC7A27C), 
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(16.0),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 12.0,
-                spreadRadius: 20.0,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 4.0),
-                child: Text(
-                  'Lyrics',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.open_in_full,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Simplified helper that just wraps standard IconButtons in our new HoverScale class
-  Widget _buildHoverIcon({
-    required IconData icon,
-    required VoidCallback onPressed,
-    double size = 28,
-    Color color = Colors.white,
-  }) {
-    return HoverScale(
-      child: IconButton(
-        icon: Icon(icon, color: color, size: size),
-        onPressed: onPressed,
-      ),
-    );
-  }
 }
 
+// --- ADAPTIVE WIREFRAME BOX ---
+class _WireframeBox extends StatelessWidget {
+  final double? height;
+  final bool isApple;
+  final Widget? child;
 
-/// A reusable widget that scales up its child when hovered.
-class HoverScale extends StatefulWidget {
-  final Widget child;
-  final double scaleFactor;
-
- const HoverScale({
-    super.key,
-    required this.child,
-    this.scaleFactor = 1.2,
-  });
-
-  @override
-  State<HoverScale> createState() => _HoverScaleState();
-}
-
-class _HoverScaleState extends State<HoverScale> {
-  bool _isHovered = false;
+  const _WireframeBox({this.height, required this.isApple, this.child});
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: AnimatedScale(
-        scale: _isHovered ? widget.scaleFactor : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: widget.child,
+    if (isApple) {
+      return Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: CupertinoColors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(color: CupertinoColors.systemGrey4, width: 1.0),
+        ),
+        child: child,
+      );
+    }
+
+    return SizedBox(
+      height: height,
+      child: Card(
+        elevation: 2,
+        shadowColor: Colors.black12,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+          side: BorderSide(color: Colors.grey.shade300),
+        ),
+        child: child,
       ),
     );
   }
 }
 
-/// A reusable text button that adds a background highlight when hovered.
-class HoverTextButton extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
+/// Distinctly swaps Button Designs
+class _AdaptiveActionWidget extends StatelessWidget {
+  final int index;
+  final bool isApple;
 
- const HoverTextButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  State<HoverTextButton> createState() => _HoverTextButtonState();
-}
-
-class _HoverTextButtonState extends State<HoverTextButton> {
-  bool _isHovered = false;
+  const _AdaptiveActionWidget({required this.index, required this.isApple});
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: InkWell(
-        onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-          decoration: BoxDecoration(
-            color: _isHovered ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              Icon(widget.icon, color: Colors.white.withValues(alpha: 0.7), size: 22),
-              const SizedBox(width: 12),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+    if (isApple) {
+      // DISTINCT iOS BUTTON
+      return CupertinoButton.filled(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        borderRadius: BorderRadius.circular(20),
+        onPressed: () {},
+        child: Text('Action $index'),
+      );
+    }
+
+    // DISTINCT MATERIAL BUTTON
+    return ElevatedButton(
+      onPressed: () {},
+      style: ElevatedButton.styleFrom(
+        elevation: 2,
+        backgroundColor: Colors.blueGrey.shade800,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
+      child: Text('Action $index'),
     );
   }
-}
-
-/// Custom Painter to draw the specific "wide ^" shape
-class _WideChevronPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.4)
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..moveTo(0, size.height) // Start bottom left
-      ..lineTo(size.width / 2, 0) // Peak in top center
-      ..lineTo(size.width, size.height); // End bottom right
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
