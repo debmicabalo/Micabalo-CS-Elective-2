@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../cart.dart';
 import '../products.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
   final bool isDarkMode;
+  final CartController cart;
 
   const HomeScreen({
     super.key,
     required this.onToggleTheme,
     required this.isDarkMode,
+    required this.cart,
   });
 
   @override
@@ -75,17 +79,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () {
-              context.push('/cart');
+          AnimatedBuilder(
+            animation: widget.cart,
+            builder: (context, child) {
+              return IconButton(
+                onPressed: () {
+                  context.push('/cart');
+                },
+                icon: Badge(
+                  label: Text('${widget.cart.itemCount}'),
+                  isLabelVisible: widget.cart.itemCount > 0,
+                  child: const Icon(
+                    Icons.shopping_cart_outlined,
+                  ),
+                ),
+                tooltip: 'Cart',
+              );
             },
-            icon: const Icon(Icons.shopping_cart_outlined),
-            tooltip: 'Cart',
           ),
           IconButton(
             onPressed: widget.onToggleTheme,
             icon: Icon(
-              widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              widget.isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
             ),
             tooltip: 'Toggle theme',
           ),
@@ -153,12 +170,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final Product product = filteredProducts[index];
+                      final Product product =
+                          filteredProducts[index];
 
                       return ProductCard(
                         product: product,
                         onTap: () {
-                          context.push('/details');
+                          context.push(
+                            '/details',
+                            extra: product,
+                          );
                         },
                       );
                     },
@@ -228,7 +249,11 @@ class HeroBanner extends StatelessWidget {
                     end: Alignment.bottomRight,
                     colors: [
                       primary,
-                      Color.lerp(primary, Colors.black, 0.28)!,
+                      Color.lerp(
+                        primary,
+                        Colors.black,
+                        0.28,
+                      )!,
                       Colors.black,
                     ],
                   ),
@@ -317,17 +342,22 @@ class HeroBanner extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: width < 600 ? width * 0.82 : 650,
+                      maxWidth: width < 600
+                          ? width * 0.82
+                          : 650,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
                         Text(
                           'MANYOKENS',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.72),
-                            fontSize: width < 600 ? 12 : 14,
+                            color:
+                                Colors.white.withOpacity(0.72),
+                            fontSize:
+                                width < 600 ? 12 : 14,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 3,
                           ),
@@ -349,10 +379,13 @@ class HeroBanner extends StatelessWidget {
                           height: width < 600 ? 20 : 26,
                         ),
                         Text(
-                          'Premium smartphones. Powerful technology.\nBuilt for the way you live.',
+                          'Premium smartphones. Powerful technology.\n'
+                          'Built for the way you live.',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.78),
-                            fontSize: width < 600 ? 14 : 17,
+                            color:
+                                Colors.white.withOpacity(0.78),
+                            fontSize:
+                                width < 600 ? 14 : 17,
                             height: 1.5,
                           ),
                         ),
@@ -368,7 +401,8 @@ class HeroBanner extends StatelessWidget {
                                 'EXPLORE COLLECTION',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: width < 600 ? 12 : 14,
+                                  fontSize:
+                                      width < 600 ? 12 : 14,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.5,
                                 ),
@@ -428,7 +462,9 @@ class _HeroGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _HeroGridPainter oldDelegate) {
+  bool shouldRepaint(
+    covariant _HeroGridPainter oldDelegate,
+  ) {
     return oldDelegate.color != color;
   }
 }
@@ -514,25 +550,32 @@ class CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
+    final ColorScheme colors =
+        Theme.of(context).colorScheme;
 
     return SizedBox(
       height: 72,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+        ),
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 28),
+        separatorBuilder: (_, __) =>
+            const SizedBox(width: 28),
         itemBuilder: (context, index) {
           final String category = categories[index];
-          final bool isSelected = category == selectedCategory;
+          final bool isSelected =
+              category == selectedCategory;
 
           return GestureDetector(
-            onTap: () => onCategorySelected(category),
+            onTap: () =>
+                onCategorySelected(category),
             behavior: HitTestBehavior.opaque,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -548,7 +591,8 @@ class CategoryBar extends StatelessWidget {
                   style: TextStyle(
                     color: isSelected
                         ? colors.onSurface
-                        : colors.onSurface.withOpacity(0.55),
+                        : colors.onSurface
+                            .withOpacity(0.55),
                     fontWeight: isSelected
                         ? FontWeight.w800
                         : FontWeight.w500,
@@ -577,12 +621,21 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color muted =
-        Theme.of(context).colorScheme.onSurface.withOpacity(0.55);
+        Theme.of(context)
+            .colorScheme
+            .onSurface
+            .withOpacity(0.55);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        20,
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment:
+            CrossAxisAlignment.end,
         children: [
           Text(
             title.toUpperCase(),
@@ -594,7 +647,8 @@ class SectionHeader extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Padding(
-            padding: const EdgeInsets.only(bottom: 2),
+            padding:
+                const EdgeInsets.only(bottom: 2),
             child: Text(
               '$itemCount items',
               style: TextStyle(
@@ -630,7 +684,8 @@ class ProductCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Container(
@@ -639,16 +694,19 @@ class ProductCard extends StatelessWidget {
                 child: Image.network(
                   product.imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
+                  errorBuilder:
+                      (context, error, stackTrace) {
                     return Center(
                       child: Icon(
                         Icons.phone_android,
                         size: 52,
-                        color: colors.onSurface.withOpacity(0.25),
+                        color: colors.onSurface
+                            .withOpacity(0.25),
                       ),
                     );
                   },
-                  loadingBuilder: (context, child, progress) {
+                  loadingBuilder:
+                      (context, child, progress) {
                     if (progress == null) {
                       return child;
                     }
@@ -657,7 +715,8 @@ class ProductCard extends StatelessWidget {
                       child: SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(
+                        child:
+                            CircularProgressIndicator(
                           strokeWidth: 2,
                         ),
                       ),
@@ -667,7 +726,12 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 13, 14, 4),
+              padding: const EdgeInsets.fromLTRB(
+                14,
+                13,
+                14,
+                4,
+              ),
               child: Text(
                 product.brand.toUpperCase(),
                 style: TextStyle(
@@ -679,7 +743,12 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+              padding: const EdgeInsets.fromLTRB(
+                14,
+                0,
+                14,
+                6,
+              ),
               child: Text(
                 product.name,
                 maxLines: 1,
@@ -691,7 +760,12 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              padding: const EdgeInsets.fromLTRB(
+                14,
+                0,
+                14,
+                14,
+              ),
               child: Text(
                 '₱${product.price.toStringAsFixed(0)}',
                 style: const TextStyle(
