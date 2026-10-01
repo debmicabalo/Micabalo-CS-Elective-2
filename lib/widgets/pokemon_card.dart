@@ -50,7 +50,7 @@ class _PokemonCardState extends State<PokemonCard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Align(
-                    alignment: Alignment.topRight,
+                    alignment: Alignment.topCenter,
                     child: Text(
                       '#${widget.pokemon.id.toString().padLeft(3, '0')}',
                       style: Theme.of(context).textTheme.bodyMedium,
