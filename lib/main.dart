@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
+import 'providers/pokemon_provider.dart';
 
-// A global notifier to hold the current theme state
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() {
-  runApp(const PokedexApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => PokemonProvider(),
+      child: const PokedexApp(),
+    ),
+  );
 }
 
 class PokedexApp extends StatelessWidget {
@@ -22,7 +28,7 @@ class PokedexApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: currentMode, // Applies whichever mode is currently selected
+          themeMode: currentMode,
           home: const HomeScreen(),
         );
       },

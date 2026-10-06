@@ -12,9 +12,18 @@ class PokeApiService {
       final data = jsonDecode(response.body);
       final List results = data['results'];
       
-      return results.map((json) => Pokemon.fromJson(json)).toList();
+      final detailedFutures = results.map((result) async {
+        final detailResponse = await http.get(Uri.parse(result['url']));
+        if (detailResponse.statusCode == 200) {
+          return Pokemon.fromJson(jsonDecode(detailResponse.body));
+        } else {
+          throw Exception('Failed to load details for ${result['name']}');
+        }
+      });
+      
+      return await Future.wait(detailedFutures);
     } else {
-      throw Exception('Failed to load Pokémon. Status code: ${response.statusCode}');
+      throw Exception('Failed to load Pokémon list. Status code: ${response.statusCode}');
     }
   }
 }
