@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
-import 'providers/pokemon_provider.dart';
 
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+final themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => PokemonProvider(),
-      child: const PokedexApp(),
+    // ProviderScope manages all Riverpod state
+    const ProviderScope(
+      child: PokedexApp(),
     ),
   );
 }
