@@ -1,132 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/theme.dart';
+import 'core/router.dart';
+import 'providers/theme_provider.dart'; // Make sure this is here
 
-import 'cart.dart';
-import 'products.dart';
-import 'screens/home_screen.dart';
-import 'screens/product_details_screen.dart';
-import 'screens/cart_screen.dart';
-import 'screens/checkout_screen.dart';
-import 'theme/app_theme.dart';
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
-void main() {
-  runApp(const ManyokensApp());
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+
+  runApp(const ProviderScope(child: PhoneStoreApp()));
 }
 
-class ManyokensApp extends StatefulWidget {
-  const ManyokensApp({super.key});
+class PhoneStoreApp extends ConsumerWidget {
+  const PhoneStoreApp({super.key});
 
   @override
-  State<ManyokensApp> createState() =>
-      _ManyokensAppState();
-}
-
-class _ManyokensAppState extends State<ManyokensApp> {
-  ThemeMode _themeMode = ThemeMode.light;
-
-  final CartController _cart = CartController();
-
-  void _toggleTheme() {
-    setState(() {
-      _themeMode =
-          _themeMode == ThemeMode.light
-              ? ThemeMode.dark
-              : ThemeMode.light;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDarkMode =
-        _themeMode == ThemeMode.dark;
-
-    final GoRouter router = GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) {
-            return HomeScreen(
-              isDarkMode: isDarkMode,
-              onToggleTheme: _toggleTheme,
-              cart: _cart,
-            );
-          },
-        ),
-
-        GoRoute(
-          path: '/details',
-          builder: (context, state) {
-            final Product? product =
-                state.extra as Product?;
-
-            if (product == null) {
-              return const _InvalidProductPage();
-            }
-
-            return ProductDetailsScreen(
-              product: product,
-              cart: _cart,
-            );
-          },
-        ),
-
-        GoRoute(
-          path: '/cart',
-          builder: (context, state) {
-            return CartScreen(
-              cart: _cart,
-            );
-          },
-        ),
-
-        GoRoute(
-          path: '/checkout',
-          redirect: (context, state) {
-            if (_cart.isEmpty) {
-              return '/cart';
-            }
-
-            return null;
-          },
-          builder: (context, state) {
-            return CheckoutScreen(
-              cart: _cart,
-            );
-          },
-        ),
-      ],
-    );
-
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
     return MaterialApp.router(
-      title: 'manyokens',
-      debugShowCheckedModeBanner: false,
+      title: 'Supabase Phone Store',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
-      routerConfig: router,
-    );
-  }
-}
-
-class _InvalidProductPage
-    extends StatelessWidget {
-  const _InvalidProductPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('PRODUCT DETAILS'),
-      ),
-      body: Center(
-        child: FilledButton(
-          onPressed: () {
-            context.go('/');
-          },
-          child: const Text('BACK TO SHOP'),
-        ),
-      ),
+      themeMode: themeMode,
+      routerConfig: appRouter,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
